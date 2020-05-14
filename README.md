@@ -55,6 +55,11 @@ If all paths have been explored, you're done!
 
 It is very difficult to calculate the shortest possible path that traverses the entire graph. Why?
 
+It is computationally quite expensive given the number of rooms we have. Perhaps even impossible. The reason for this is because in order
+to quantify something as the shortest, you'd need to have knowledge of all the possible ways to traverse the dungeon (or perhaps at least, 
+all possible ways under some pre-determined number of steps because if you know you can do it in under 2000 steps it's not really imperative
+to know how to do it in 3000) and to compute all of those possibilities would be very taxing on a computer.
+
 My best path is 957 moves. Can you find a shorter path?
 
 
