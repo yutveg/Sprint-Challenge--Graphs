@@ -31,7 +31,7 @@ traversal_path = []
 
 
 
-def convert_path_directionals(path):
+def convert_path_directionals(path, traversal_graph):
     directions = []
     # convert path to directionals n/s/w/e
     for index in range(len(path) - 1):
@@ -48,76 +48,69 @@ def get_unvisited_directions(room_directions):
             options.append(key)
     return options
 
-def get_visited_directions(room_directions):
-    options = []
-    for key, value in room_directions.items():
-        if value != '?':
-            options.append(key)
-    return options
+def main():
+    traversal_graph = {}
+    inverse_lookup = {'n': 's', 's': 'n', 'e': 'w', 'w': 'e'}
+    current_room = world.starting_room
+    traversal_graph[current_room.id] = {exit: '?' for exit in current_room.get_exits()}
+    while len(traversal_graph) < 500:
+        # DFT - Loop "spelunk"
+        spelunk = True
+        while spelunk:
+            options = get_unvisited_directions(traversal_graph[current_room.id])
+            if len(options) > 0:
+                # Getting our direction and counter direction
+                dr = random.randrange(len(options))
+                drx = options[dr]
+                rdrx = inverse_lookup[drx]
+                traversal_path.append(drx)
 
-traversal_graph = {}
-inverse_lookup = {'n': 's', 's': 'n', 'e': 'w', 'w': 'e'}
-current_room = world.starting_room
-traversal_graph[current_room.id] = {exit: '?' for exit in current_room.get_exits()}
-while len(traversal_graph) < 500:
-    # DFT - Loop "spelunk"
-    spelunk = True
-    while spelunk:
-        options = get_unvisited_directions(traversal_graph[current_room.id])
-        if len(options) > 0:
-            # Getting our direction and counter direction
-            dr = random.randrange(len(options))
-            drx = options[dr]
-            rdrx = inverse_lookup[drx]
-            traversal_path.append(drx)
+                # Assigning room values
+                last_room = current_room
+                current_room = current_room.get_room_in_direction(drx)
 
-            # Assigning room values
-            last_room = current_room
-            current_room = current_room.get_room_in_direction(drx)
+                # Updating our traversal graph
+                traversal_graph[last_room.id][drx] = current_room
+                traversal_graph[current_room.id] = {exit: '?' for exit in current_room.get_exits()}
+                traversal_graph[current_room.id][rdrx] = last_room
+            else:
+                spelunk = False
 
-            # Updating our traversal graph
-            traversal_graph[last_room.id][drx] = current_room
-            traversal_graph[current_room.id] = {exit: '?' for exit in current_room.get_exits()}
-            traversal_graph[current_room.id][rdrx] = last_room
-        else:
-            spelunk = False
-
-    # BFT - Loop "traceback"
-    q = Queue()
-    q.enqueue([current_room])
-    traceback = True
-    while traceback:
-        if len(traversal_graph) == 500: break
-        # dequeue first path
-        path = q.dequeue()
-        # check if we found a room with unexplored area
-        if len(get_unvisited_directions(traversal_graph[path[-1].id])) > 0:
-            directions = convert_path_directionals(path)
-            # append new direction inputs to traversal path
-            for entry in directions:
-                    traversal_path.append(entry)
-            current_room = path[-1]
-            traceback = False
-
-        for key, value in traversal_graph[path[-1].id].items():
-            if traceback == False: break
-
-            new_path = list(path)
-            new_path.append(value)
-            q.enqueue(new_path)
+        # BFT - Loop "traceback"
+        q = Queue()
+        q.enqueue([current_room])
+        traceback = True
+        while traceback:
+            if len(traversal_graph) == 500: break
+            path = q.dequeue()
 
             # check if we found a room with unexplored area
-            if len(get_unvisited_directions(traversal_graph[value.id])) > 0:
-                directions = convert_path_directionals(new_path)
+            if len(get_unvisited_directions(traversal_graph[path[-1].id])) > 0:
+                directions = convert_path_directionals(path, traversal_graph)
                 # append new direction inputs to traversal path
                 for entry in directions:
-                    traversal_path.append(entry)
-                current_room = new_path[-1]
+                        traversal_path.append(entry)
+                current_room = path[-1]
                 traceback = False
 
+            for key, value in traversal_graph[path[-1].id].items():
+                if traceback == False: break
+                new_path = list(path)
+                new_path.append(value)
+                q.enqueue(new_path)
+                # check if we found a room with unexplored area
+                if len(get_unvisited_directions(traversal_graph[value.id])) > 0:
+                    directions = convert_path_directionals(new_path, traversal_graph)
+                    # append new direction inputs to traversal path
+                    for entry in directions:
+                        traversal_path.append(entry)
+                    current_room = new_path[-1]
+                    traceback = False
 
-        
-print(traversal_path)
+while len(traversal_path) == 0 or len(traversal_path) > 2000:
+    traversal_path = []
+    main()
+
 # TRAVERSAL TEST - DO NOT MODIFY
 visited_rooms = set()
 player.current_room = world.starting_room
